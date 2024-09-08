@@ -33,46 +33,43 @@ def series_dl(url):
     else:
         print(f'{fn} status code: {sc}')
 
+async def fileget(url, session):
+    async with session.get(url) as aresp:
+        fn = url.split('/')[len(url.split('/')) - 1]
+        if aresp.status == 200:
+            print(f'{fn} status code 200. Now downloading.')
+            with open(fn, 'wb') as file:
+                file.write(await aresp.read()) #Remember to use await
+            print(f'{fn} download complete. Now unzipping.')
+            with zipfile.ZipFile(fn,'r') as zf:
+                zf.extractall()
+            print(f'{fn} unzipped. Now deleting zip file.')
+            os.remove(fn)
+        else:
+            print(f'{fn} status code: {aresp.status}')
+            pass
+
 async def amain():
     #asyncio + aiohttp version
-    x = os.getcwd()+"\\Exercises\\Exercise-1"
-    if not os.path.exists(rf"{x}\downloads"):
+    x = os.getcwd()+r"\Exercises\Exercise-1"
+    if not os.path.exists(rf"{x}\downloads"): #r for raw string
         os.mkdir(rf"{x}\downloads")
     os.chdir(rf"{x}\downloads")
-    for i in download_uris:
-        fn = i.split('/')[len(i.split('/')) - 1]
-        async with aiohttp.ClientSession() as session:
-            async with session.get(i) as aresp:
-                if aresp.status == 200:
-                    print(f'{fn} status code 200. Now downloading.')
-                    with open(fn, 'wb') as file:
-                        file.write(await aresp.read()) #Remember to use await
-                    print(f'{fn} download complete. Now unzipping.')
-                    with zipfile.ZipFile(fn,'r') as zf:
-                        zf.extractall()
-                    print(f'{fn} unzipped. Now deleting zip file.')
-                    os.remove(fn)
-                else:
-                    print(f'{fn} status code: {aresp.status}')
-                    pass
-
+    async with aiohttp.ClientSession() as session:
+        tl = [fileget(i,session) for i in download_uris]
+        await asyncio.gather(*tl) #The asterisk is necessary for list unpacking.
+        
 def main():
     # your code here
-    x = os.getcwd()+"\\Exercises\\Exercise-1"
+    x = os.getcwd()+r"\Exercises\Exercise-1"
     if not os.path.exists(rf"{x}\downloads"):
         os.mkdir(rf"{x}\downloads")
     os.chdir(rf"{x}\downloads")
-    for i in download_uris:
-        series_dl(i)
-    #with ThreadPoolExecutor(max_workers=4) as tpe:
-        #tpe.map(series_dl,download_uris)
+    with ThreadPoolExecutor(max_workers = min(10,len(download_uris))) as tpe:
+        tpe.map(series_dl,download_uris)
 
 if __name__ == "__main__":
     start_time = time.time()
     #main()
     asyncio.run(amain())
     print(f"Total completion time: {time.time() - start_time} secs")
-
-#Series Runtime: 155.87 secs
-#Async Runtime with no concurrency: 163.98 secs
-#TPE Runtime: 80.29 secs
