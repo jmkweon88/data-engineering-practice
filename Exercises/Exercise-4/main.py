@@ -1,6 +1,9 @@
 import os
 import json
+import glob
+import csv
 
+#Recursive flattener
 def flattener(target):
     header = []
     output = []
@@ -25,20 +28,36 @@ def flattener(target):
         output += [str(target)]
     return (header,output)
 
+#New code using the suggested packages.
 def main():
+    x = os.getcwd()
+    files = glob.glob('./**/*.json',recursive=True)
+    for i in files:
+        with open(i, 'r') as j:
+            q = json.loads(j.read())
+        (h,r) = flattener(q)
+        d = dict(zip(h,r))
+        with open(i.replace('.json','csv'),'w') as cf:
+            writer = csv.DictWriter(cf,fieldnames=h)
+            writer.writeheader()
+            writer.writerow(d)
+    print(glob.glob('./**/*.csv',recursive=True))
+            
+
+#Old code that did not use the suggested packages. (glob, csv)
+def old_main():
     # your code here
     x = os.getcwd()
-    x = x.replace(r'\Exercises\Exercise-4', r'') + r'\Exercises\Exercise-4'
-    cr = x + r'\data'
+    cr = os.path.join(x,'data') #Lesson learned. Avoiding manipulating paths manually as much as possible. Slashes matter.
     files = []
     csvpaths = []
     for (dirpath, subdir, filelist) in os.walk(cr):
         for i in filelist:
-            jsonpath = dirpath + '\\' + i
+            jsonpath = os.path.join(dirpath,i)
             try:
                 with open(jsonpath, 'r') as j:
                     files.append(json.loads(j.read()))
-                csvpaths.append(jsonpath.replace(".json",".csv"))
+                csvpaths.append(jsonpath.replace('.json','.csv'))
             except:
                 pass
     for j in range(len(files)):
